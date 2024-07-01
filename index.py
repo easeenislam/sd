@@ -52,6 +52,10 @@ def main():
 
             try:
                 for model_name, model in models.items():
+                    if model is None:
+                        st.error(f"Model {model_name} is not loaded correctly.")
+                        continue
+
                     st.write(f"Model: {model_name}")
 
                     # Assuming two input tensors are needed
