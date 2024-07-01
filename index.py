@@ -15,14 +15,16 @@ def load_model(model_path):
         st.error(f"Error loading model {model_path}: {e}")
         return None
 
-# Load the model
+# Define model paths
 model_paths = {
     "DenseNet201": "DenseNet201-HPT.keras",
     "DenseNet169": "DenseNet169-HPT.keras",
     "ResNet50V2": "ResNet50V2-HPT.keras",
     "Xception": "Xception-HPT.keras",
-}  # Adjust the path accordingly
-model = load_model(model_path)
+}
+
+# Load models
+models = {name: load_model(path) for name, path in model_paths.items()}
 
 # Define class labels
 class_labels = {0: "Benign", 1: "Malignant"}  # Adjust according to your dataset
@@ -35,31 +37,46 @@ def main():
 
     if page == "Home":
         st.title("Melanoma Malignant and Benign Classification App")
-        st.write("Upload an image to classify whether it is Benign or Malignant.")
-
+        st.write("Upload an image and select a model. The selected model will predict the class.")
         uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
-        if uploaded_file is not None:
-            image = Image.open(uploaded_file)
+        if not models:
+            st.error("No models loaded successfully. Please check the model paths and retry.")
+            return
+
+        selected_model = st.selectbox("Select Model", list(models.keys()))
+
+        classify_button = ui.button(text="Classify", key="styled_btn_tailwind", className="bg-green-400 text-white")
+
+        if uploaded_file is not None and classify_button:
+            image = Image.open(uploaded_file).convert('RGB')
             st.image(image, caption='Uploaded Image', use_column_width=True)
+            st.write("Classifying...")
 
-            # Preprocess the image
-            img = image.resize((224, 224))  # Resize image to match model's expected sizing
-            img_array = np.array(img) / 255.0  # Normalize image
-            img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
+            # Resize image to 224x224
+            input_shape = (224, 224)
+            image_array = np.array(image.resize(input_shape)) / 255.0  # Convert image to numpy array and normalize
 
-            # Duplicate the image array to match the model's input requirements
-            input_1 = img_array
-            input_2 = img_array
+            # Expand dimensions to match the input shape expected by the model
+            image_array = np.expand_dims(image_array, axis=0)
 
-            # Predict
             try:
-                prediction = model.predict([input_1, input_2])
+                # Predict class probabilities using the selected model
+                prediction = models[selected_model].predict([image_array, image_array])
+                
+                # Get the predicted class label
                 pred_class = np.argmax(prediction)
-                st.write(f"Predicted Class: {class_labels[pred_class]}")
-                st.write(f"Confidence: {prediction[0][pred_class]:.2f}")
+
+                # Map predicted class label to class name
+                predicted_label = class_labels[pred_class]
+
+                # Get the probability of the predicted class
+                confidence = prediction[0][pred_class]
+
+                st.write(f"Predicted Class: {predicted_label}")
+                st.write(f"Confidence: {confidence:.2f}")
             except Exception as e:
-                st.error(f"Error predicting: {e}")
+                st.error(f"Error during prediction: {str(e)}")
 
     elif page == "About Us":
         st.title("About Us")
