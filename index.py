@@ -16,7 +16,12 @@ def load_model(model_path):
         return None
 
 # Load the model
-model_path = "path_to_your_model/DenseNet201_HPT.keras"  # Adjust the path accordingly
+model_paths = {
+    "DenseNet201": "DenseNet201-HPT.keras",
+    "DenseNet169": "DenseNet169-HPT.keras",
+    "ResNet50V2": "ResNet50V2-HPT.keras",
+    "Xception": "Xception-HPT.keras",
+}  # Adjust the path accordingly
 model = load_model(model_path)
 
 # Define class labels
