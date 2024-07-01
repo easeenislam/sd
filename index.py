@@ -2,7 +2,6 @@ import streamlit as st
 import tensorflow as tf
 from PIL import Image
 import numpy as np
-from contextlib import suppress
 import streamlit_shadcn_ui as ui
 
 # Function to load model with custom objects if necessary
@@ -19,29 +18,16 @@ def load_model(model_path):
 # Load multiple models
 model_paths = {
     "DenseNet201": "DenseNet201-HPT.keras",
-    "DenseNet169": "DenseNet169-HPT.keras",
-    "ResNet50V2": "ResNet50V2-HPT.keras",
-    "Xception": "Xception-HPT.keras",
+    "DenseNet169": "DenseNet201-HPT.keras",
+    "ResNet50V2": "DenseNet201-HPT.keras",
+    "Xception": "DenseNet201-HPT.keras",
 }
 
 # Load models
 models = {name: load_model(path) for name, path in model_paths.items()}
 
-# Remove any None models (failed to load)
-models = {name: model for name, model in models.items() if model is not None}
-
 # Define class labels
 class_labels = {0: "Benign", 1: "Malignant"}  # Adjust according to your dataset
-
-# Wrapper function to handle multiple inputs
-def predict_with_model(model, image):
-    # Check if model expects multiple inputs
-    if isinstance(model.input, list):
-        # Assuming the model expects two identical inputs, duplicate the input image
-        prediction = model.predict([image, image])
-    else:
-        prediction = model.predict(image)
-    return prediction
 
 # Main application function
 def main():
@@ -72,14 +58,14 @@ def main():
             image = image.resize(input_shape)
 
             # Convert image to numpy array and normalize
-            image = np.array(image) / 255.0  
+            image_array = np.array(image) / 255.0  
 
             # Expand dimensions to match the input shape expected by the model
-            image = np.expand_dims(image, axis=0)
+            image_array = np.expand_dims(image_array, axis=0)
 
             try:
                 # Predict class probabilities using the selected model
-                prediction = predict_with_model(models[selected_model], image)
+                prediction = models[selected_model].predict(image_array)
                 
                 # Get the predicted class label
                 pred_class = np.argmax(prediction)
