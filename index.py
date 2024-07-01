@@ -8,9 +8,13 @@ import streamlit_shadcn_ui as ui
 # Function to load model with custom objects if necessary
 @st.cache_resource()
 def load_model(model_path):
-    model = tf.keras.models.load_model(model_path)
-    model.summary()  # Print the model summary to check the input and output layers
-    return model
+    try:
+        model = tf.keras.models.load_model(model_path)
+        model.summary()  # Print the model summary to check the input and output layers
+        return model
+    except Exception as e:
+        st.error(f"Error loading model {model_path}: {e}")
+        return None
 
 # Load multiple models
 model_paths = {
@@ -23,8 +27,21 @@ model_paths = {
 # Load models
 models = {name: load_model(path) for name, path in model_paths.items()}
 
+# Remove any None models (failed to load)
+models = {name: model for name, model in models.items() if model is not None}
+
 # Define class labels
 class_labels = {0: "Benign", 1: "Malignant"}  # Adjust according to your dataset
+
+# Wrapper function to handle multiple inputs
+def predict_with_model(model, image):
+    # Check if model expects multiple inputs
+    if isinstance(model.input, list):
+        # Assuming the model expects two identical inputs, duplicate the input image
+        prediction = model.predict([image, image])
+    else:
+        prediction = model.predict(image)
+    return prediction
 
 # Main application function
 def main():
@@ -36,6 +53,10 @@ def main():
         st.title("Melanoma Malignant and Benign Classification App")
         st.write("Upload an image and select a model. The selected model will predict the class.")
         uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+
+        if not models:
+            st.error("No models loaded successfully. Please check the model paths and retry.")
+            return
 
         selected_model = st.selectbox("Select Model", list(models.keys()))
 
@@ -56,21 +77,24 @@ def main():
             # Expand dimensions to match the input shape expected by the model
             image = np.expand_dims(image, axis=0)
 
-            with suppress():
+            try:
                 # Predict class probabilities using the selected model
-                prediction = models[selected_model].predict(image)
-            
-            # Get the predicted class label
-            pred_class = np.argmax(prediction)
+                prediction = predict_with_model(models[selected_model], image)
+                
+                # Get the predicted class label
+                pred_class = np.argmax(prediction)
 
-            # Map predicted class label to class name
-            predicted_label = class_labels[pred_class]
+                # Map predicted class label to class name
+                predicted_label = class_labels[pred_class]
 
-            # Get the probability of the predicted class
-            confidence = prediction[0][pred_class]
+                # Get the probability of the predicted class
+                confidence = prediction[0][pred_class]
 
-            st.write(f"Predicted Class: {predicted_label}")
-            st.write(f"Confidence: {confidence:.2f}")
+                st.write(f"Predicted Class: {predicted_label}")
+                st.write(f"Confidence: {confidence:.2f}")
+            except Exception as e:
+                st.error(f"Error during prediction: {str(e)}")
+
     elif page == "About Us":
         st.title("About Us")
 
