@@ -26,35 +26,38 @@ models = {name: load_model(path) for name, path in model_paths.items() if path}
 
 # Main application function
 def main():
-    st.title("Melanoma Malignant and Benign Classification App")
-    st.write("Upload an image and select a model. The selected model will predict the class.")
+    st.title("Model Inference with Two Input Tensors")
 
-    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+    uploaded_file1 = st.file_uploader("Choose image 1...", type=["jpg", "jpeg", "png"])
+    uploaded_file2 = st.file_uploader("Choose image 2...", type=["jpg", "jpeg", "png"])
 
-    if uploaded_file is not None:
-        image = Image.open(uploaded_file).convert('RGB')
-        image = image.resize((224, 224))  # Resize to match models' expected input size
+    if uploaded_file1 is not None and uploaded_file2 is not None:
+        image1 = Image.open(uploaded_file1).convert('RGB')
+        image1 = image1.resize((224, 224))  # Resize to match models' expected input size
+        image_array1 = np.array(image1)
+        image_array1 = image_array1.astype('float32') / 255.0  # Normalize image
+        image_array1 = np.expand_dims(image_array1, axis=0)  # Add batch dimension
 
-        st.image(image, caption='Uploaded Image', use_column_width=True)
+        image2 = Image.open(uploaded_file2).convert('RGB')
+        image2 = image2.resize((224, 224))  # Resize to match models' expected input size
+        image_array2 = np.array(image2)
+        image_array2 = image_array2.astype('float32') / 255.0  # Normalize image
+        image_array2 = np.expand_dims(image_array2, axis=0)  # Add batch dimension
+
+        st.image(image1, caption='Uploaded Image 1', use_column_width=True)
+        st.image(image2, caption='Uploaded Image 2', use_column_width=True)
         st.write("Classifying...")
 
         try:
             for model_name, model in models.items():
                 st.write(f"Model: {model_name}")
-                
-                # Preprocess the image
-                image_array = np.array(image)
-                image_array = image_array.astype('float32') / 255.0  # Normalize image
-                image_array = np.expand_dims(image_array, axis=0)  # Add batch dimension
-                
-                # Handle models that expect two inputs
-                if model_name == "Xception":
-                    input_tensor1 = image_array
-                    input_tensor2 = np.zeros_like(input_tensor1)  # Example placeholder for a second input
-                    prediction = model.predict([input_tensor1, input_tensor2])
-                else:
-                    prediction = model.predict(image_array)
 
+                # Assuming two input tensors are needed
+                input_tensor1 = image_array1
+                input_tensor2 = image_array2
+
+                # Predict using the model
+                prediction = model.predict([input_tensor1, input_tensor2])
                 pred_class = np.argmax(prediction)
                 confidence = prediction[0][pred_class]
 
