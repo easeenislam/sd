@@ -7,34 +7,20 @@ import streamlit_shadcn_ui as ui
 # Function to load model with custom objects if necessary
 @st.cache(allow_output_mutation=True)
 def load_model(model_path):
-    model = tf.keras.models.load_model(model_path)
-    return model
+    try:
+        model = tf.keras.models.load_model(model_path)
+        model.summary()  # Print the model summary to check the input and output layers
+        return model
+    except Exception as e:
+        st.error(f"Error loading model {model_path}: {e}")
+        return None
 
-# Load models
-model_paths = {
-    "DenseNet201": "DenseNet201-HPT.keras",
-    "DenseNet169": "DenseNet169-HPT.keras",
-    "ResNet50V2": "ResNet50V2-HPT.keras",
-    "Xception": "Xception-HPT.keras",
-}
-
-models = {name: load_model(path) for name, path in model_paths.items()}
+# Load the model
+model_path = "path_to_your_model/DenseNet201_HPT.keras"  # Adjust the path accordingly
+model = load_model(model_path)
 
 # Define class labels
 class_labels = {0: "Benign", 1: "Malignant"}  # Adjust according to your dataset
-
-# Function to preprocess the image
-def preprocess_image(image):
-    input_shape = (224, 224)  # Assuming input shape expected by models
-    image = image.resize(input_shape)
-    image = np.array(image) / 255.0
-    image = np.expand_dims(image, axis=0)
-    return image
-
-# Function to predict with the model
-def predict_with_model(model, image):
-    prediction = model.predict(image)
-    return prediction
 
 # Main application function
 def main():
@@ -44,37 +30,31 @@ def main():
 
     if page == "Home":
         st.title("Melanoma Malignant and Benign Classification App")
-        st.write("Upload an image and click Classify to predict the class.")
+        st.write("Upload an image to classify whether it is Benign or Malignant.")
+
         uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
         if uploaded_file is not None:
-            image = Image.open(uploaded_file).convert('RGB')
+            image = Image.open(uploaded_file)
             st.image(image, caption='Uploaded Image', use_column_width=True)
-            st.write("Classifying...")
 
             # Preprocess the image
-            processed_image = preprocess_image(image)
+            img = image.resize((224, 224))  # Resize image to match model's expected sizing
+            img_array = np.array(img) / 255.0  # Normalize image
+            img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
 
-            classify_button = st.button("Classify")
+            # Duplicate the image array to match the model's input requirements
+            input_1 = img_array
+            input_2 = img_array
 
-            if classify_button:
-                # Get the selected model
-                selected_model = st.selectbox("Select Model", list(models.keys()))
-
-                # Predict class probabilities using the selected model
-                prediction = predict_with_model(models[selected_model], processed_image)
-                
-                # Get the predicted class label
+            # Predict
+            try:
+                prediction = model.predict([input_1, input_2])
                 pred_class = np.argmax(prediction)
-
-                # Map predicted class label to class name
-                predicted_label = class_labels[pred_class]
-
-                # Get the probability of the predicted class
-                confidence = prediction[0][pred_class]
-
-                st.write(f"Predicted Class: {predicted_label}")
-                st.write(f"Confidence: {confidence:.2f}")
+                st.write(f"Predicted Class: {class_labels[pred_class]}")
+                st.write(f"Confidence: {prediction[0][pred_class]:.2f}")
+            except Exception as e:
+                st.error(f"Error predicting: {e}")
 
     elif page == "About Us":
         st.title("About Us")
