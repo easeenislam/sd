@@ -46,26 +46,28 @@ def main():
 
         st.image(image1, caption='Uploaded Image 1', use_column_width=True)
         st.image(image2, caption='Uploaded Image 2', use_column_width=True)
-        st.write("Classifying...")
 
-        try:
-            for model_name, model in models.items():
-                st.write(f"Model: {model_name}")
+        if st.button('Classify'):
+            st.write("Classifying...")
 
-                # Assuming two input tensors are needed
-                input_tensor1 = image_array1
-                input_tensor2 = image_array2
+            try:
+                for model_name, model in models.items():
+                    st.write(f"Model: {model_name}")
 
-                # Predict using the model
-                prediction = model.predict([input_tensor1, input_tensor2])
-                pred_class = np.argmax(prediction)
-                confidence = prediction[0][pred_class]
+                    # Assuming two input tensors are needed
+                    input_tensor1 = image_array1
+                    input_tensor2 = image_array2
 
-                st.write(f"Predicted Class: {pred_class}")
-                st.write(f"Confidence: {confidence:.2f}")
+                    # Predict using the model
+                    prediction = model.predict([input_tensor1, input_tensor2])
+                    pred_class = np.argmax(prediction)
+                    confidence = prediction[0][pred_class]
 
-        except Exception as e:
-            st.error(f"Error during prediction: {str(e)}")
+                    st.write(f"Predicted Class: {pred_class}")
+                    st.write(f"Confidence: {confidence:.2f}")
+
+            except Exception as e:
+                st.error(f"Error during prediction: {str(e)}")
 
 if __name__ == "__main__":
     main()
