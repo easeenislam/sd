@@ -14,10 +14,10 @@ def load_model(model_path):
 
 # Load multiple models
 model_paths = {
-    "DenseNet201": "DenseNet201_final.keras",
-    "DenseNet169": "DenseNet169_final.keras",
-    "ResNet50V2": "ResNet50V2_final.keras",
-    "Xception": "Xception_final.keras",
+    "DenseNet201": "DenseNet201-HPT.keras",
+    "DenseNet169": "DenseNet169-HPT.keras",
+    "ResNet50V2": "ResNet50V2-HPT.keras",
+    "Xception": "Xception-HPT.keras",
 }
 
 # Load models
