@@ -2,14 +2,12 @@ import streamlit as st
 import tensorflow as tf
 from PIL import Image
 import numpy as np
-import streamlit_shadcn_ui as ui
 
 # Function to load model with custom objects if necessary
 @st.cache(allow_output_mutation=True)
 def load_model(model_path):
     try:
         model = tf.keras.models.load_model(model_path)
-        model.summary()  # Print the model summary to check the input and output layers
         return model
     except Exception as e:
         st.error(f"Error loading model {model_path}: {e}")
@@ -26,74 +24,34 @@ model_paths = {
 # Load models
 models = {name: load_model(path) for name, path in model_paths.items()}
 
-# Define class labels
-class_labels = {0: "Benign", 1: "Malignant"}  # Adjust according to your dataset
-
 # Main application function
 def main():
-    st.sidebar.title("Dashboard")
+    st.title("Melanoma Malignant and Benign Classification App")
+    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
-    page = st.sidebar.radio("Go to", ["Home", "About Us"])
+    if uploaded_file is not None:
+        image = Image.open(uploaded_file).convert('RGB')
+        image = image.resize((224, 224))  # Resize to match model's expected input size
+        image_array = np.array(image)
+        image_array = image_array.astype('float32') / 255.0  # Normalize image
+        image_array = np.expand_dims(image_array, axis=0)  # Add batch dimension
 
-    if page == "Home":
-        st.title("Melanoma Malignant and Benign Classification App")
-        st.write("Upload an image and select a model. The selected model will predict the class.")
-        uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
-
-        if not models:
-            st.error("No models loaded successfully. Please check the model paths and retry.")
-            return
-
-        selected_model = st.selectbox("Select Model", list(models.keys()))
-
-        classify_button = ui.button(text="Classify", key="styled_btn_tailwind", className="bg-green-400 text-white")
-
-        if uploaded_file is not None and classify_button:
-            image = Image.open(uploaded_file).convert('RGB')
-            st.image(image, caption='Uploaded Image', use_column_width=True)
-            st.write("Classifying...")
-
-            # Resize image to 224x224
-            input_shape = (224, 224)
-            image_array = np.array(image.resize(input_shape)) / 255.0  # Convert image to numpy array and normalize
-
-            # Expand dimensions to match the input shape expected by the model
-            image_array = np.expand_dims(image_array, axis=0)
-
-            try:
-                # Predict class probabilities using the selected model
-                prediction = models[selected_model].predict([image_array, image_array])
-                
-                # Get the predicted class label
-                pred_class = np.argmax(prediction)
-
-                # Map predicted class label to class name
-                predicted_label = class_labels[pred_class]
-
-                # Get the probability of the predicted class
-                confidence = prediction[0][pred_class]
-
-                st.write(f"Predicted Class: {predicted_label}")
-                st.write(f"Confidence: {confidence:.2f}")
-            except Exception as e:
-                st.error(f"Error during prediction: {str(e)}")
-
-    elif page == "About Us":
-        st.title("About Us")
-
-        st.image("fn.jpg", caption="Faria Nishat")
-        ui.metric_card("Faria Nishat", "Lecturer")
-
-        cols = st.columns(2)
-        with cols[0]:
-            st.image("https://scontent.fdac138-1.fna.fbcdn.net/v/t39.30808-6/441458877_122128062392284217_1286163050482529306_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=5f2048&_nc_eui2=AeGEvAzVWiP52wY80pWZJDuAVuMlvLOiZIBW4yW8s6JkgD_pDT8AogdsCnUSKViE7HfPKXMervGVfDwaH3oiZ8tU&_nc_ohc=VDiUlWOxbkUQ7kNvgFRd_3x&_nc_ht=scontent.fdac138-1.fna&oh=00_AYD2s93GmOmXFT0OzgKvAJ5kML79206g0rEehE1WUZ4duA&oe=6656A719", caption="MD LIKHON MIA")
-            ui.metric_card("MD LIKHON MIA", "203-15-3916", "57_D, CSE, likhon15-3916@diu.edu.bd")
-
-        with cols[1]:
-            st.image("https://scontent.fdac138-2.fna.fbcdn.net/v/t39.30808-6/440415142_977505897445068_8368649292102824103_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=5f2048&_nc_eui2=AeFZIwfZWKn87OuNsRLGLVN76U69LgfiKAXpTr0uB-IoBSK9Guqdltv84kTZTV2DE58jQVDojarvsT__ZSJPvl0j&_nc_ohc=9Pv1NzBZicAQ7kNvgHYDxF9&_nc_ht=scontent.fdac138-2.fna&oh=00_AYDYnB8k4OSO16lTTER5b1B86ChixKDpUg0ky6sQEAQTLQ&oe=6656AF8D", caption="Eshita Akter")
-            ui.metric_card("Eshita Akter", "203-15-3922", "57_D, CSE, eshita15-3922@diu.edu.bd")
-        
-        # You can add more content about your team, project, etc.
+        for model_name, model in models.items():
+            st.subheader(f"Model: {model_name}")
+            if model is not None:
+                try:
+                    # Predict class probabilities
+                    prediction = model.predict(image_array)
+                    pred_class = np.argmax(prediction)
+                    confidence = prediction[0][pred_class]
+                    
+                    # Display results
+                    st.write(f"Predicted Class: {pred_class}")
+                    st.write(f"Confidence: {confidence:.2f}")
+                except Exception as e:
+                    st.error(f"Error during prediction with {model_name}: {str(e)}")
+            else:
+                st.error(f"Model {model_name} not loaded correctly.")
 
 if __name__ == "__main__":
     main()
