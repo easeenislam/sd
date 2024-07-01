@@ -10,7 +10,7 @@ def load_model(model_path):
     model = tf.keras.models.load_model(model_path)
     return model
 
-# Define model paths
+# Load models
 model_paths = {
     "DenseNet201": "DenseNet201-HPT.keras",
     "DenseNet169": "DenseNet169-HPT.keras",
@@ -18,7 +18,6 @@ model_paths = {
     "Xception": "Xception-HPT.keras",
 }
 
-# Load models
 models = {name: load_model(path) for name, path in model_paths.items()}
 
 # Define class labels
@@ -26,7 +25,7 @@ class_labels = {0: "Benign", 1: "Malignant"}  # Adjust according to your dataset
 
 # Function to preprocess the image
 def preprocess_image(image):
-    input_shape = (224, 224)  # Assuming DenseNet201 expects this input shape
+    input_shape = (224, 224)  # Assuming input shape expected by models
     image = image.resize(input_shape)
     image = np.array(image) / 255.0
     image = np.expand_dims(image, axis=0)
@@ -59,11 +58,11 @@ def main():
             classify_button = st.button("Classify")
 
             if classify_button:
+                # Get the selected model
                 selected_model = st.selectbox("Select Model", list(models.keys()))
-                model = models[selected_model]
 
                 # Predict class probabilities using the selected model
-                prediction = predict_with_model(model, processed_image)
+                prediction = predict_with_model(models[selected_model], processed_image)
                 
                 # Get the predicted class label
                 pred_class = np.argmax(prediction)
